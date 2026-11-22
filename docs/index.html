@@ -24,9 +24,12 @@
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M6.5 14.5 10 11l2.5 2.5L17.5 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>ONYX</span>
       </div>
-      <button class="heartbeat" id="heartbeat" type="button" aria-live="polite">
-        <span class="pulse" aria-hidden="true"></span><span id="heartbeat-text">Conectando…</span>
-      </button>
+      <div class="top-actions">
+        <button class="heartbeat" id="heartbeat" type="button" aria-live="polite">
+          <span class="pulse" aria-hidden="true"></span><span id="heartbeat-text">Conectando…</span>
+        </button>
+        <button class="help" type="button" data-action="guide" aria-label="Guía de esta pantalla">?</button>
+      </div>
     </header>
 
     <main id="view" tabindex="-1"></main>
@@ -49,6 +52,7 @@
   </div>
   <div id="toasts" aria-live="polite"></div>
 
+  <script src="guide.js"></script>
   <script src="charts.js"></script>
   <script src="github.js"></script>
   <script src="app.js"></script>

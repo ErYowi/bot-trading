@@ -31,7 +31,7 @@ export function computeStats(bot) {
     hodl,
     hodlPct: (hodl / bot.capital - 1) * 100,
     vsHodlPct: ((equity - hodl) / bot.capital) * 100,
-    trades: trades.length,
+    trades: bot.tradeCount || trades.length,
     openPositions: bot.positions.length,
     winRate: trades.length ? (wins.length / trades.length) * 100 : null,
     profitFactor: grossLoss > 0 ? grossWin / grossLoss : wins.length ? null : null,

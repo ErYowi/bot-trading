@@ -1,6 +1,6 @@
 // Service worker de ONYX: funciona sin conexión y recibe notificaciones push.
-const CACHE = 'onyx-v1';
-const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'charts.js', 'github.js', 'manifest.webmanifest', 'icons/icon-192.png'];
+const CACHE = 'onyx-v2';
+const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'charts.js', 'github.js', 'guide.js', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

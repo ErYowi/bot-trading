@@ -22,7 +22,7 @@
     rebote: 'Cazador de rebotes',
     ruptura: 'Rupturas',
   };
-  const RISKS = { conservador: 'Conservador', equilibrado: 'Equilibrado', agresivo: 'Agresivo' };
+  const RISKS = { agresivo: 'Rápido', equilibrado: 'Equilibrado', conservador: 'Calmado' };
   const SIGNAL_NAMES = {
     tendencia: 'Tendencia (EMA 20/50)', momentum: 'Momentum (4h)', rebote: 'Rebote (RSI)',
     ruptura: 'Ruptura (máximos 5h)', volumen: 'Volumen',
@@ -40,7 +40,25 @@
       return { ...DEFAULTS, ...next };
     },
   };
-  const DEFAULTS = { accent: 'oro', bg: 'onix', font: 'clasica', range: '7d' };
+  const DEFAULTS = {
+    accent: 'oro', bg: 'onix', font: 'clasica', range: '7d',
+    customAccent: '', customBg: '', updown: 'clasico', customUp: '', customDown: '',
+    lineWidth: 'normal', chartFill: true, showHodl: true, hide: false, startTab: 'inicio', animations: true,
+  };
+  const UPDOWN = {
+    clasico: { name: 'Verde y rojo', up: '#63c79b', down: '#ee6f7d' },
+    daltonico: { name: 'Azul y naranja', up: '#5aa9ff', down: '#ff9f43' },
+    sobrio: { name: 'Blanco y gris', up: '#f2f0ea', down: '#7c7a74' },
+  };
+  const LINE_W = { fina: 0.7, normal: 1, gruesa: 1.6 };
+  const TEMPLATES = [
+    { name: 'IA Rápida', strategy: 'adaptativo', risk: 'agresivo', desc: 'Opera mucho y reacciona rápido, con filtro de calidad.' },
+    { name: 'IA Equilibrada', strategy: 'adaptativo', risk: 'equilibrado', desc: 'El punto medio entre actividad y prudencia.' },
+    { name: 'IA Calmada', strategy: 'adaptativo', risk: 'conservador', desc: 'Pocas operaciones, solo con señales muy claras.' },
+    { name: 'Tendencia', strategy: 'tendencia', risk: 'equilibrado', desc: 'Se sube a lo que ya está subiendo.' },
+    { name: 'Rebotes', strategy: 'rebote', risk: 'equilibrado', desc: 'Compra caídas exageradas esperando el rebote.' },
+    { name: 'Rupturas', strategy: 'ruptura', risk: 'agresivo', desc: 'Entra cuando el precio rompe máximos con volumen.' },
+  ];
   let S = { ...DEFAULTS, ...store.get() };
 
   // Repositorio: se detecta solo si la app está en usuario.github.io/repo
@@ -67,9 +85,9 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const eurFmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const eur = (v) => eurFmt.format(v || 0);
+  const eur = (v) => (S.hide ? '•••,•• €' : eurFmt.format(v || 0));
   const signed = (v, digits = 2) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toLocaleString('es-ES', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
-  const signedEur = (v) => `${v >= 0 ? '+' : '−'}${eurFmt.format(Math.abs(v))}`;
+  const signedEur = (v) => `${v >= 0 ? '+' : '−'}${S.hide ? '•••,•• €' : eurFmt.format(Math.abs(v))}`;
   const pct = (v, digits = 2) => `${signed(v, digits)} %`;
   const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : 'muted');
   function price(v) {
@@ -86,7 +104,11 @@
   }
   const when = (t) => new Date(t * 1000).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const hhmm = (t) => new Date(t * 1000).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  const accentColor = () => ACCENTS[S.accent]?.c || ACCENTS.oro.c;
+  const accentColor = () => S.customAccent || ACCENTS[S.accent]?.c || ACCENTS.oro.c;
+  const bgColor = () => S.customBg || BGS[S.bg]?.c || '#000000';
+  const upColor = () => S.customUp || UPDOWN[S.updown]?.up || UPDOWN.clasico.up;
+  const downColor = () => S.customDown || UPDOWN[S.updown]?.down || UPDOWN.clasico.down;
+  const lw = (w) => w * (LINE_W[S.lineWidth] || 1);
   const livePrice = (sym) => LIVE[sym]?.price ?? STATE?.market?.[sym]?.price ?? null;
 
   function toast(title, body = '', ms = 4200) {
@@ -101,10 +123,13 @@
   function applyTheme() {
     const root = document.documentElement;
     root.style.setProperty('--accent', accentColor());
-    root.style.setProperty('--bg', BGS[S.bg]?.c || '#000');
-    root.dataset.bg = S.bg;
+    root.style.setProperty('--bg', bgColor());
+    root.style.setProperty('--up', upColor());
+    root.style.setProperty('--down', downColor());
+    root.dataset.bg = S.customBg ? 'custom' : S.bg;
     root.dataset.font = S.font;
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', BGS[S.bg]?.c || '#000');
+    root.dataset.anim = S.animations ? 'on' : 'off';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', bgColor());
   }
 
   // ---------- Carga de datos ----------
@@ -312,7 +337,7 @@
         </div>
       </section>
       <div id="home-chart"></div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>Tus bots</span><span><i style="background:var(--muted)"></i>Mantener BTC</span></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Tus bots</span>${S.showHodl ? '<span><i style="background:var(--muted)"></i>Mantener BTC</span>' : ''}</div>
       ${rangeButtons()}
 
       <section class="versus" aria-label="Bots frente a mantener Bitcoin">
@@ -331,8 +356,8 @@
       ${lastTrades.length ? lastTrades.map((t) => tradeItem(t, true)).join('') : '<p class="muted small">Todavía no ha cerrado ninguna operación. Los bots esperan a que las señales sean claras.</p>'}
     `;
     Charts.lineChart($('#home-chart'), [
-      { points: downsample(inRange(eq, S.range)), color: accentColor(), width: 2, fill: true, label: 'Bots' },
-      { points: downsample(inRange(hodl, S.range)), color: '#8d8a82', width: 1.2, dash: '3 4', label: 'BTC' },
+      { points: downsample(inRange(eq, S.range)), color: accentColor(), width: lw(2), fill: S.chartFill, label: 'Bots' },
+      ...(S.showHodl ? [{ points: downsample(inRange(hodl, S.range)), color: '#8d8a82', width: lw(1.2), dash: '3 4', label: 'BTC' }] : []),
     ], { height: 190, baseline: capital, format: eur });
     firstPaint = false;
   }
@@ -381,12 +406,33 @@
 
   // ---------- Bots ----------
   function renderBots(v) {
+    const ranked = [...STATE.bots].map((b) => ({ b, ret: (liveEquity(b) / b.capital - 1) * 100 })).sort((a, c) => c.ret - a.ret);
     v.innerHTML = `${demoBanner()}
       <h1 class="title">Bots</h1>
-      <p class="muted small">Cada bot es un simulador independiente con su propio dinero, estrategia y aprendizaje. Corren todos a la vez, 24 horas al día.</p>
-      <div class="rows">${STATE.bots.map(botRow).join('')}</div>
+      <p class="muted small">Cada bot es un simulador independiente con su propio dinero, estrategia, riesgo y aprendizaje. Corren todos a la vez, 24 horas al día.</p>
+      <h2 class="section-title">Ranking <small>por rentabilidad</small></h2>
+      <ol class="rows ranking">${ranked.map(({ b, ret }, i) => `<li>${rankRow(b, ret, i + 1)}</li>`).join('')}</ol>
       <button class="btn block" type="button" data-action="new-bot" style="margin-top:20px">Crear un bot nuevo</button>
       ${S.token || DEMO ? '' : '<p class="muted small" style="text-align:center">Para crear o editar bots desde el móvil, conecta GitHub en Ajustes.</p>'}`;
+  }
+
+  function rankRow(b, ret, pos) {
+    const st = b.stats || {};
+    return `<a class="row rank-row" href="#bot/${encodeURIComponent(b.id)}">
+      <span class="rank rank-${pos}" aria-label="Puesto ${pos}">${pos}</span>
+      <div class="row-main"><div class="row-title">${esc(b.name)}</div>
+      <div class="row-sub">${esc(RISKS[b.risk] || b.risk)}, ${st.trades ?? 0} operaciones, caída máx. ${(st.maxDrawdownPct || 0).toFixed(1).replace('.', ',')} %</div></div>
+      <div class="row-end"><div>${eur(liveEquity(b))}</div><div class="row-sub ${cls(ret)}">${pct(ret)}</div></div></a>`;
+  }
+
+  function templatePicker() {
+    openSheet(`<h2 id="sheet-title">Nuevo bot</h2>
+      <p class="muted small">Elige una plantilla y ajusta lo que quieras antes de crearlo.</p>
+      <div class="rows">${TEMPLATES.map((t, i) => `<button class="row" type="button" data-action="use-template" data-i="${i}" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left">
+        <div class="row-main"><div class="row-title">${esc(t.name)}</div><div class="row-sub" style="white-space:normal">${esc(t.desc)}</div></div>
+        <div class="row-end row-sub">${esc(RISKS[t.risk])}</div></button>`).join('')}
+        <button class="row" type="button" data-action="use-template" data-i="-1" style="width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left">
+        <div class="row-main"><div class="row-title">Desde cero</div><div class="row-sub">Configúralo todo tú.</div></div></button></div>`);
   }
 
   function renderBot(v, id) {
@@ -404,7 +450,7 @@
         <div class="hero-meta"><span class="${cls(ret)}">${signedEur(eq - b.capital)} (${pct(ret)})</span><span class="muted">empezó con ${eur(b.capital)} ${ago(b.createdAt)}</span></div>
       </section>
       <div id="bot-chart"></div>
-      <div class="legend"><span><i style="background:var(--accent)"></i>${esc(b.name)}</span><span><i style="background:var(--muted)"></i>Mantener BTC (${pct(st.hodlPct || 0)})</span></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>${esc(b.name)}</span>${S.showHodl ? `<span><i style="background:var(--muted)"></i>Mantener BTC (${pct(st.hodlPct || 0)})</span>` : ''}</div>
       ${rangeButtons()}
 
       <h2 class="section-title">Estadísticas</h2>
@@ -436,8 +482,8 @@
 
       <div class="btn-row"><button class="btn ghost" type="button" data-action="edit-bot" data-id="${esc(b.id)}">Editar bot</button></div>`;
     Charts.lineChart($('#bot-chart'), [
-      { points: downsample(inRange(b.equityHistory.map((p) => [p[0], p[1]]), S.range)), color: accentColor(), width: 2, fill: true, label: 'Bot' },
-      { points: downsample(inRange(b.equityHistory.map((p) => [p[0], p[2]]), S.range)), color: '#8d8a82', width: 1.2, dash: '3 4', label: 'BTC' },
+      { points: downsample(inRange(b.equityHistory.map((p) => [p[0], p[1]]), S.range)), color: accentColor(), width: lw(2), fill: S.chartFill, label: 'Bot' },
+      ...(S.showHodl ? [{ points: downsample(inRange(b.equityHistory.map((p) => [p[0], p[2]]), S.range)), color: '#8d8a82', width: lw(1.2), dash: '3 4', label: 'BTC' }] : []),
     ], { height: 180, baseline: b.capital, format: eur });
   }
   const stat = (k, v, c = '') => `<div class="stat"><div class="k">${esc(k)}</div><div class="v ${c}">${esc(v)}</div></div>`;
@@ -498,7 +544,7 @@
         ${stat('Máximo 24 h', price(d.high24h))}${stat('Mínimo 24 h', price(d.low24h))}
         ${stat('RSI (14)', d.rsi ? d.rsi.toFixed(0) : '—')}${stat('Bots dentro', holders.length ? holders.join(', ') : 'Ninguno')}
       </div>`);
-    Charts.lineChart($('#coin-chart'), [{ points: pts, color: d.change24h >= 0 ? '#63c79b' : '#ee6f7d', width: 1.8, fill: true }], { height: 170, format: price });
+    Charts.lineChart($('#coin-chart'), [{ points: pts, color: d.change24h >= 0 ? upColor() : downColor(), width: lw(1.8), fill: S.chartFill }], { height: 170, format: price });
   }
 
   // ---------- Diario ----------
@@ -526,15 +572,36 @@
     v.innerHTML = `
       <h1 class="title">Ajustes</h1>
 
-      <section class="group"><h2>Color de la app</h2>
-        <div class="swatches with-labels" role="group" aria-label="Color de acento">${Object.entries(ACCENTS).map(([k, a]) =>
-          `<button class="swatch" type="button" style="--c:${a.c}" data-accent="${k}" aria-pressed="${S.accent === k}" aria-label="${a.name}"><span>${a.name}</span></button>`).join('')}</div>
+      <section class="group"><h2>Color principal</h2>
+        <div class="swatches with-labels" role="group" aria-label="Color principal">${Object.entries(ACCENTS).map(([k, a]) =>
+          `<button class="swatch" type="button" style="--c:${a.c}" data-accent="${k}" aria-pressed="${!S.customAccent && S.accent === k}" aria-label="${a.name}"><span>${a.name}</span></button>`).join('')}
+          ${colorSwatch('customAccent', S.customAccent, 'Libre')}</div>
       </section>
       <section class="group"><h2>Fondo</h2>
-        <div class="seg" role="group" aria-label="Fondo">${Object.entries(BGS).map(([k, b]) => `<button type="button" data-set-bg="${k}" aria-pressed="${S.bg === k}">${b.name}</button>`).join('')}</div>
+        <div class="seg" role="group" aria-label="Fondo">${Object.entries(BGS).map(([k, b]) => `<button type="button" data-set-bg="${k}" aria-pressed="${!S.customBg && S.bg === k}">${b.name}</button>`).join('')}</div>
+        <div class="setting"><div><b>Fondo libre</b><p>Cualquier color oscuro que quieras.</p></div>${colorInput('customBg', S.customBg || bgColor())}</div>
+      </section>
+      <section class="group"><h2>Subidas y bajadas</h2>
+        <div class="seg" role="group" aria-label="Colores de subidas y bajadas">${Object.entries(UPDOWN).map(([k, u]) => `<button type="button" data-pref="updown" data-val="${k}" aria-pressed="${!S.customUp && !S.customDown && S.updown === k}">${u.name}</button>`).join('')}</div>
+        <div class="setting"><div><b>Color de subida</b><p class="up">${pct(2.35)}</p></div>${colorInput('customUp', upColor())}</div>
+        <div class="setting"><div><b>Color de bajada</b><p class="down">${pct(-1.8)}</p></div>${colorInput('customDown', downColor())}</div>
       </section>
       <section class="group"><h2>Tipografía de los números</h2>
         <div class="seg" role="group" aria-label="Tipografía"><button type="button" data-set-font="clasica" aria-pressed="${S.font === 'clasica'}">Clásica</button><button type="button" data-set-font="moderna" aria-pressed="${S.font === 'moderna'}">Moderna</button></div>
+      </section>
+
+      <section class="group"><h2>Gráficas</h2>
+        <div class="field"><label>Grosor de la línea</label><div class="seg" role="group" aria-label="Grosor">${['fina', 'normal', 'gruesa'].map((k) => `<button type="button" data-pref="lineWidth" data-val="${k}" aria-pressed="${S.lineWidth === k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div>
+        <div class="field"><label>Periodo por defecto</label><div class="seg" role="group" aria-label="Periodo">${Object.keys(RANGES).map((k) => `<button type="button" data-pref="range" data-val="${k}" aria-pressed="${S.range === k}">${k === 'todo' ? 'Todo' : k}</button>`).join('')}</div></div>
+        ${switchRow('chartFill', 'Relleno bajo la línea', 'Degradado debajo de la curva.')}
+        ${switchRow('showHodl', 'Mostrar línea de BTC', 'La comparación con mantener Bitcoin.')}
+      </section>
+
+      <section class="group"><h2>Privacidad y extras</h2>
+        ${switchRow('hide', 'Ocultar cantidades', 'Muestra •••,•• € en lugar del dinero. Los porcentajes se siguen viendo.')}
+        ${switchRow('animations', 'Animaciones', 'Desactívalas si prefieres una app más quieta.')}
+        <div class="field" style="margin-top:14px"><label>Pantalla al abrir la app</label><div class="seg" role="group" aria-label="Pantalla inicial">${[['inicio', 'Inicio'], ['bots', 'Bots'], ['mercado', 'Mercado'], ['diario', 'Diario']].map(([k, n]) => `<button type="button" data-pref="startTab" data-val="${k}" aria-pressed="${S.startTab === k}">${n}</button>`).join('')}</div></div>
+        <button class="btn ghost block" type="button" data-action="reset-look">Restablecer apariencia</button>
       </section>
 
       <section class="group"><h2>Conexión con GitHub</h2>
@@ -581,6 +648,28 @@
     }
   }
 
+  function switchRow(key, title, sub) {
+    return `<div class="setting"><div><b>${esc(title)}</b><p>${esc(sub)}</p></div><label class="switch"><input type="checkbox" data-pref="${key}" ${S[key] ? 'checked' : ''} aria-label="${esc(title)}" /><i></i></label></div>`;
+  }
+  function colorInput(key, value) {
+    return `<label class="color-pick" style="--c:${esc(value)}"><input type="color" data-color="${key}" value="${esc(value)}" aria-label="Elegir color" /></label>`;
+  }
+  function colorSwatch(key, value, label) {
+    return `<label class="swatch swatch-free" style="--c:${esc(value || '#888')}" aria-pressed="${!!value}"><input type="color" data-color="${key}" value="${esc(value || accentColor())}" aria-label="Color libre" /><span>${label}</span></label>`;
+  }
+
+  // ---------- Guía (botón ?) ----------
+  function openGuide() {
+    const { tab } = route();
+    const ctx = GUIDE.context[tab] || GUIDE.context.inicio;
+    const rest = Object.keys(GUIDE.topics).filter((k) => !ctx.includes(k));
+    const block = (k, open) => `<details class="guide-item" ${open ? 'open' : ''}><summary>${esc(GUIDE.topics[k].title)}</summary><div class="guide-body">${GUIDE.topics[k].html}</div></details>`;
+    openSheet(`<h2 id="sheet-title">Guía</h2>
+      ${ctx.map((k, i) => block(k, i === 0)).join('')}
+      <h3 class="section-title">Más temas</h3>
+      ${rest.map((k) => block(k, false)).join('')}`);
+  }
+
   // ---------- Hoja inferior ----------
   function openSheet(html) {
     $('#sheet-body').innerHTML = html;
@@ -593,9 +682,8 @@
   }
 
   // ---------- Editor de bots ----------
-  function botEditor(bot) {
-    const isNew = !bot;
-    const b = bot || { name: '', strategy: 'adaptativo', risk: 'equilibrado', capital: 100, coins: [] };
+  function botEditor(bot, isNew = !bot?.id) {
+    const b = { name: '', strategy: 'adaptativo', risk: 'equilibrado', capital: 100, coins: [], ...(bot || {}) };
     const coins = Array.isArray(b.coins) && b.coins.length ? b.coins : COIN_LIST;
     openSheet(`<h2 id="sheet-title">${isNew ? 'Nuevo bot' : 'Editar ' + esc(b.name)}</h2>
       <form id="bot-form" novalidate>
@@ -607,7 +695,7 @@
         <div class="field"><label>Riesgo</label><div class="seg" data-group="risk">${Object.entries(RISKS).map(([k, n]) => `<button type="button" data-val="${k}" aria-pressed="${b.risk === k}">${n}</button>`).join('')}</div></div>
         <div class="field"><label>Criptos que puede operar</label><div class="chips" data-group="coins" data-multi>${COIN_LIST.map((c) => `<button type="button" class="chip" data-val="${c}" aria-pressed="${coins.includes(c)}">${c}</button>`).join('')}</div></div>
         <button class="btn block" type="submit">${isNew ? 'Crear bot' : 'Guardar cambios'}</button>
-        ${isNew ? '' : `<div class="btn-row"><button class="btn ghost" type="button" data-action="reset-bot" data-id="${esc(b.id)}">Reiniciar</button><button class="btn danger" type="button" data-action="delete-bot" data-id="${esc(b.id)}">Borrar</button></div>`}
+        ${isNew ? '' : `<div class="btn-row"><button class="btn ghost" type="button" data-action="duplicate-bot" data-id="${esc(b.id)}">Duplicar</button><button class="btn ghost" type="button" data-action="reset-bot" data-id="${esc(b.id)}">Reiniciar</button><button class="btn danger" type="button" data-action="delete-bot" data-id="${esc(b.id)}">Borrar</button></div>`}
       </form>`);
     const form = $('#bot-form');
     form.addEventListener('click', (e) => {
@@ -690,13 +778,18 @@
 
   // ---------- Eventos ----------
   document.addEventListener('click', async (e) => {
-    const t = e.target.closest('[data-action],[data-range],[data-accent],[data-set-bg],[data-set-font],[data-goto],[data-close]');
+    const t = e.target.closest('[data-action],[data-range],[data-accent],[data-set-bg],[data-set-font],[data-goto],[data-close],button[data-pref]');
     if (!t) return;
     if (t.dataset.close !== undefined) return closeSheet();
     if (t.dataset.goto) { location.hash = t.dataset.goto; return; }
     if (t.dataset.range) { S = store.set({ range: t.dataset.range }); render(); return; }
-    if (t.dataset.accent) { S = store.set({ accent: t.dataset.accent }); applyTheme(); render(); return; }
-    if (t.dataset.setBg) { S = store.set({ bg: t.dataset.setBg }); applyTheme(); render(); return; }
+    if (t.tagName === 'BUTTON' && t.dataset.pref) {
+      const patch = { [t.dataset.pref]: t.dataset.val };
+      if (t.dataset.pref === 'updown') { patch.customUp = ''; patch.customDown = ''; }
+      S = store.set(patch); applyTheme(); render(); return;
+    }
+    if (t.dataset.accent) { S = store.set({ accent: t.dataset.accent, customAccent: '' }); applyTheme(); render(); return; }
+    if (t.dataset.setBg) { S = store.set({ bg: t.dataset.setBg, customBg: '' }); applyTheme(); render(); return; }
     if (t.dataset.setFont) { S = store.set({ font: t.dataset.setFont }); applyTheme(); render(); return; }
     const a = t.dataset.action;
     if (a === 'demo') { DEMO = true; S = store.set({ demo: true }); await load(); }
@@ -704,7 +797,11 @@
     else if (a === 'toggle-demo') { DEMO = t.checked; S = store.set({ demo: DEMO }); STATE = null; await load(); }
     else if (a === 'back') history.length > 1 ? history.back() : (location.hash = '#bots');
     else if (a === 'coin') openCoin(t.dataset.sym);
-    else if (a === 'new-bot') botEditor(null);
+    else if (a === 'new-bot') templatePicker();
+    else if (a === 'use-template') { const tpl = TEMPLATES[+t.dataset.i]; botEditor(tpl ? { name: tpl.name, strategy: tpl.strategy, risk: tpl.risk } : null, true); }
+    else if (a === 'duplicate-bot') { const src = STATE.bots.find((b) => b.id === t.dataset.id); if (src) botEditor({ name: `${src.name} 2`.slice(0, 18), strategy: src.strategy, risk: src.risk, capital: src.capital, coins: src.coins }, true); }
+    else if (a === 'guide') openGuide();
+    else if (a === 'reset-look') { S = store.set({ ...DEFAULTS, owner: S.owner, repo: S.repo, token: S.token, demo: S.demo }); applyTheme(); render(); toast('Apariencia restablecida'); }
     else if (a === 'edit-bot') botEditor(STATE.bots.find((b) => b.id === t.dataset.id));
     else if (a === 'reset-bot') {
       if (t.dataset.confirm !== '1') { t.dataset.confirm = '1'; t.textContent = 'Pulsa otra vez para reiniciar'; return; }
@@ -729,8 +826,19 @@
     else if (a === 'reload') { await load(true); toast('Datos actualizados'); }
   });
 
+  document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.dataset.color) {
+      S = store.set({ [t.dataset.color]: t.value });
+      applyTheme();
+      const holder = t.closest('.color-pick, .swatch-free');
+      if (holder) holder.style.setProperty('--c', t.value);
+    }
+  });
   document.addEventListener('change', async (e) => {
     const t = e.target;
+    if (t.dataset.color) { render(); return; }
+    if (t.type === 'checkbox' && t.dataset.pref) { S = store.set({ [t.dataset.pref]: t.checked }); applyTheme(); if (t.dataset.pref !== 'animations') render(); return; }
     if (t.dataset.notif) {
       const key = t.dataset.notif;
       const val = t.checked;
@@ -743,6 +851,7 @@
     }
   });
 
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
   window.addEventListener('hashchange', () => { closeSheet(); render(); window.scrollTo(0, 0); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { load(); connectLive(); } });
   let resizeT;
@@ -750,6 +859,7 @@
 
   // ---------- Arranque ----------
   applyTheme();
+  if (!location.hash && S.startTab && S.startTab !== 'inicio') history.replaceState(null, '', `#${S.startTab}`);
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   load();
   setInterval(() => { if (document.visibilityState === 'visible') load(); }, 90 * 1000);

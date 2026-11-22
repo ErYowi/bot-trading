@@ -79,8 +79,9 @@ function closePosition(bot, p, rawPrice, t, reason, events) {
   };
   bot.positions = bot.positions.filter((x) => x !== p);
   bot.cooldown = bot.cooldown || {};
-  bot.cooldown[p.coin] = t + 8 * CANDLE_SECONDS; // espera 2 h antes de volver a entrar en esa moneda
+  bot.cooldown[p.coin] = t + (RISK[bot.risk].cooldownCandles ?? 8) * CANDLE_SECONDS; // pausa antes de volver a esa moneda
   bot.trades.push(trade);
+  bot.tradeCount = (bot.tradeCount || 0) + 1;
   if (bot.trades.length > MAX_TRADES_KEPT) bot.trades.splice(0, bot.trades.length - MAX_TRADES_KEPT);
   const lesson = learn(bot, trade);
   bot.journal.push({ t, type: 'aprendizaje', text: lesson });
@@ -115,7 +116,7 @@ export function stepBot(bot, market, t, events) {
       const trail = p.peak - R.stopATR * 0.75 * atr;
       if (trail > p.stop) p.stop = Math.max(trail, p.entry * (1 + 2 * (FEE_RATE + SLIPPAGE)));
     }
-    const sig = (t - p.entryTime) / CANDLE_SECONDS >= 4 ? signalsAt(m.candles, m.ind, i) : null;
+    const sig = (t - p.entryTime) / CANDLE_SECONDS >= (R.minHoldCandles ?? 4) ? signalsAt(m.candles, m.ind, i) : null;
     if (sig) {
       const sc = score(bot.weights, sig);
       if (sc < -bot.threshold) {
@@ -141,6 +142,9 @@ export function stepBot(bot, market, t, events) {
       if (i == null) continue;
       const sig = signalsAt(m.candles, m.ind, i);
       if (!sig) continue;
+      // Filtro de calidad: varias señales tienen que estar de acuerdo
+      const agree = Object.values(sig.s).filter((v) => v > 0.2).length;
+      if (agree < (R.minAgree ?? 2)) continue;
       const trust = bot.coinTrust[coin] ?? 1;
       const sc = score(bot.weights, sig) * trust;
       if (sc > bot.threshold) candidates.push({ coin, sig, sc, trust, price: m.candles[i].c });
@@ -180,8 +184,8 @@ export function stepBot(bot, market, t, events) {
   bot.equityHistory.push([t, +eq.toFixed(4), +hodlVal.toFixed(4)]);
   if (bot.equityHistory.length > MAX_EQUITY_POINTS) {
     // comprime la parte antigua para no crecer sin límite
-    const old = bot.equityHistory.slice(0, 1200).filter((_, i) => i % 4 === 0);
-    bot.equityHistory = old.concat(bot.equityHistory.slice(1200));
+    const old = bot.equityHistory.slice(0, 800).filter((_, i) => i % 4 === 0);
+    bot.equityHistory = old.concat(bot.equityHistory.slice(800));
   }
   if (bot.journal.length > MAX_JOURNAL) bot.journal.splice(0, bot.journal.length - MAX_JOURNAL);
 }

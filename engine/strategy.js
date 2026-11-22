@@ -86,7 +86,7 @@ export function learn(bot, trade) {
   }
 
   // Cada 10 operaciones revisa el umbral: si falla mucho, se vuelve más exigente.
-  const n = bot.trades.length;
+  const n = bot.tradeCount || bot.trades.length;
   if (n > 0 && n % 10 === 0) {
     const last = bot.trades.slice(-10);
     const wr = last.filter((t) => t.pnl > 0).length / last.length;

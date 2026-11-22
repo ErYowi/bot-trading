@@ -25,9 +25,13 @@ export const COINS = {
 
 // Perfiles de riesgo.
 export const RISK = {
-  conservador: { maxPositions: 2, positionPct: 0.2, stopATR: 1.5, tpATR: 2.5, threshold: 0.45, maxHoldCandles: 192 },
-  equilibrado: { maxPositions: 3, positionPct: 0.25, stopATR: 2.0, tpATR: 3.0, threshold: 0.35, maxHoldCandles: 192 },
-  agresivo: { maxPositions: 5, positionPct: 0.3, stopATR: 2.5, tpATR: 4.0, threshold: 0.25, maxHoldCandles: 288 },
+  // Calmado: pocas operaciones, solo entra con señales muy claras y las deja correr.
+  conservador: { label: 'Calmado', maxPositions: 2, positionPct: 0.2, stopATR: 1.8, tpATR: 3.0, threshold: 0.45, maxHoldCandles: 288, cooldownCandles: 16, minHoldCandles: 8, minAgree: 3 },
+  // Equilibrado: término medio.
+  equilibrado: { label: 'Equilibrado', maxPositions: 3, positionPct: 0.25, stopATR: 2.0, tpATR: 3.0, threshold: 0.35, maxHoldCandles: 192, cooldownCandles: 8, minHoldCandles: 4, minAgree: 2 },
+  // Rápido: opera más y reacciona antes (stops y objetivos más cortos, menos espera),
+  // pero sigue exigiendo que al menos 2 señales estén de acuerdo.
+  agresivo: { label: 'Rápido', maxPositions: 4, positionPct: 0.22, stopATR: 1.5, tpATR: 2.2, threshold: 0.25, maxHoldCandles: 96, cooldownCandles: 2, minHoldCandles: 2, minAgree: 2 },
 };
 
 // Señales que usa el bot. Cada estrategia empieza con pesos distintos
@@ -61,6 +65,6 @@ export const STRATEGIES = {
 
 export const LEARNING_RATE = 0.15;
 export const MIN_WEIGHT = 0.03;
-export const MAX_TRADES_KEPT = 400;
-export const MAX_JOURNAL = 400;
-export const MAX_EQUITY_POINTS = 3000;
+export const MAX_TRADES_KEPT = 250;
+export const MAX_JOURNAL = 250;
+export const MAX_EQUITY_POINTS = 2000;
