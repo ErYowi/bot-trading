@@ -59,7 +59,9 @@ function syncBots(state, cfg, market, t, events) {
 
 function marketSnapshot(market) {
   const out = {};
-  for (const [sym, m] of Object.entries(market)) {
+  for (const sym of Object.keys(COINS)) {
+    const m = market[sym];
+    if (!m) continue;
     const c = m.candles;
     const last = c[c.length - 1];
     const day = c.slice(-96);
