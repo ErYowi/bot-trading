@@ -15,7 +15,7 @@ Bots que operan **con dinero simulado y precios reales** las 24 horas, y una app
 3. Settings → Actions → General → Workflow permissions: *Read and write*.
 4. Actions → "ONYX bot 24/7" → *Run workflow* (o espera 5 min).
 5. Abre `https://TU_USUARIO.github.io/bot-trading/` en Safari → Compartir → *Añadir a pantalla de inicio*.
-6. (Opcional) En Ajustes de la app pega un token *fine-grained* con permiso **Contents: Read and write** solo para este repo, para crear bots y activar notificaciones desde el móvil.
+6. (Opcional) En Ajustes de la app pega un token *fine-grained* con permisos **Contents** y **Actions** en *Read and write* solo para este repo, para crear bots y activar notificaciones desde el móvil.
 
 ## Probar en local
 ```bash

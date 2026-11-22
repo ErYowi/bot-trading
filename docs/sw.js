@@ -1,5 +1,5 @@
 // Service worker de ONYX: funciona sin conexión y recibe notificaciones push.
-const CACHE = 'onyx-v3';
+const CACHE = 'onyx-v4';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'charts.js', 'github.js', 'guide.js', 'manifest.webmanifest', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

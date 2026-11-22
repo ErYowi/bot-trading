@@ -75,7 +75,15 @@
       return j;
     }
 
-    return { getState, getFile, putFile, update, check };
+    // Lanza un ciclo del motor ahora (necesita permiso Actions: Read and write)
+    async function dispatch() {
+      const r = await fetch(`${API}/repos/${owner}/${repo}/actions/workflows/bot.yml/dispatches`, {
+        method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ ref: 'main' }),
+      });
+      if (r.status !== 204) throw new Error(r.status === 403 || r.status === 404 ? 'El token necesita el permiso "Actions: Read and write".' : errorText(r.status));
+    }
+
+    return { getState, getFile, putFile, update, check, dispatch };
   }
 
   function errorText(status) {

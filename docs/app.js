@@ -146,6 +146,7 @@
         LOAD_ERROR = STATE ? null : 'sin-estado';
       }
       if (STATE) LOAD_ERROR = null;
+      autoKick();
       notifyNewEvents();
       connectLive();
     } catch (e) {
@@ -154,6 +155,16 @@
     renderHeartbeat();
     const stamp = STATE ? `${DEMO}-${STATE.updatedAt}` : `none-${LOAD_ERROR}`;
     if (force || stamp !== lastStamp) { lastStamp = stamp; render(); }
+  }
+
+  // Si GitHub se retrasa con los ciclos automáticos, la app lanza uno al abrirse
+  function autoKick() {
+    if (DEMO || !S.token || !STATE) return;
+    const stale = Date.now() / 1000 - STATE.updatedAt > 12 * 60;
+    const recent = Date.now() - (S.lastKick || 0) < 8 * 60 * 1000;
+    if (!stale || recent) return;
+    S = store.set({ lastKick: Date.now() });
+    gh().dispatch().then(() => toast('Motor despertado', 'GitHub iba con retraso; en un minuto llegan datos nuevos.')).catch(() => {});
   }
 
   function notifyNewEvents() {
@@ -638,7 +649,7 @@
         <details class="note" style="margin-top:14px"><summary style="cursor:pointer"><b>Cómo crear el token</b></summary>
           <ol><li>En GitHub: Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token.</li>
           <li>En "Repository access" elige solo el repositorio del bot.</li>
-          <li>En permisos, pon "Contents" en "Read and write". Nada más.</li>
+          <li>En permisos, pon "Contents" y "Actions" en "Read and write". Nada más.</li>
           <li>Cópialo y pégalo aquí.</li></ol></details>
       </section>
 
@@ -652,6 +663,7 @@
       <section class="group"><h2>Datos</h2>
         <div class="setting"><div><b>Modo demo</b><p>Muestra datos de ejemplo en lugar de los del motor.</p></div><label class="switch"><input type="checkbox" data-action="toggle-demo" ${DEMO ? 'checked' : ''} /><i></i></label></div>
         <div class="setting"><div><b>Actualizar ahora</b><p>${STATE ? `Último ciclo del motor ${ago(STATE.updatedAt)}, ${STATE.runs || 0} ciclos en total.` : 'Sin datos todavía.'}</p></div><button class="btn ghost" type="button" data-action="reload">Actualizar</button></div>
+        <div class="setting"><div><b>Ejecutar el motor ahora</b><p>Lanza un ciclo sin esperar a GitHub. La app también lo hace sola si el motor lleva más de 12 min parado.</p></div><button class="btn ghost" type="button" data-action="kick">Ejecutar</button></div>
       </section>
 
       <section class="group"><h2>Sobre el simulador</h2>
@@ -848,6 +860,11 @@
     } else if (a === 'forget-token') { S = store.set({ token: '' }); render(); toast('Token eliminado de este dispositivo'); }
     else if (a === 'enable-push') enablePush();
     else if (a === 'reload') { await load(true); toast('Datos actualizados'); }
+    else if (a === 'kick') {
+      if (DEMO || !S.token) { toast('Falta conectar GitHub', 'Añade el token en Ajustes.'); return; }
+      try { await gh().dispatch(); S = store.set({ lastKick: Date.now() }); toast('Motor lanzado', 'En un minuto aproximadamente verás datos nuevos.'); setTimeout(() => load(true), 75000); }
+      catch (err) { toast('No se pudo lanzar', err.message, 6000); }
+    }
   });
 
   document.addEventListener('input', (e) => {

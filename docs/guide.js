@@ -106,7 +106,7 @@ window.GUIDE = {
     github: {
       title: 'Conexión con GitHub',
       html: `<p>La app lee los resultados del motor desde tu repositorio. Sin token funciona en modo lectura.</p>
-      <p>Con un token <b>fine-grained</b> (solo ese repositorio, permiso Contents de lectura y escritura) puedes crear, editar y borrar bots y activar notificaciones desde el móvil. El token se guarda únicamente en este dispositivo.</p>`,
+      <p>Con un token <b>fine-grained</b> (solo ese repositorio, permisos Contents y Actions de lectura y escritura) puedes crear, editar y borrar bots y activar notificaciones desde el móvil. El token se guarda únicamente en este dispositivo.</p>`,
     },
     notificaciones: {
       title: 'Notificaciones',
