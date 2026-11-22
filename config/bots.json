@@ -1,0 +1,8 @@
+{
+  "bots": [
+    { "id": "adaptativo", "name": "Onyx IA", "strategy": "adaptativo", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
+    { "id": "tendencia", "name": "Tendencia", "strategy": "tendencia", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
+    { "id": "rebote", "name": "Rebotes", "strategy": "rebote", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" }
+  ],
+  "notifications": { "compras": true, "ventas": true }
+}

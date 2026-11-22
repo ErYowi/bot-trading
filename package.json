@@ -1,0 +1,15 @@
+{
+  "name": "onyx-bot-trading",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ONYX: simulador de bot de trading cripto 24/7 (paper trading)",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node engine/run.js",
+    "test": "node engine/test/simulate.js"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

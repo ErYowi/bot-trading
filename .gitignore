@@ -1,0 +1,4 @@
+node_modules/
+data/
+.vapid/
+.DS_Store

@@ -1,0 +1,66 @@
+// Configuración global del motor ONYX.
+// Todo lo que afecta al realismo de la simulación está aquí.
+
+export const CANDLE_SECONDS = 900; // velas de 15 minutos
+export const HISTORY_CANDLES = 300; // ~75 horas de historial para los indicadores
+
+// Comisiones y deslizamiento (similares a un exchange spot tipo Binance/Kraken).
+export const FEE_RATE = 0.001; // 0,1 % por operación (compra y venta)
+export const SLIPPAGE = 0.0005; // 0,05 % de deslizamiento en cada orden
+export const MIN_ORDER_EUR = 5; // orden mínima
+
+// Las 10 criptos grandes (sin stablecoins) disponibles en Kraken/Coinbase en EUR.
+export const COINS = {
+  BTC: { name: 'Bitcoin', kraken: 'XBTEUR', coinbase: 'BTC-EUR', ws: 'BTC/EUR' },
+  ETH: { name: 'Ethereum', kraken: 'ETHEUR', coinbase: 'ETH-EUR', ws: 'ETH/EUR' },
+  XRP: { name: 'XRP', kraken: 'XRPEUR', coinbase: 'XRP-EUR', ws: 'XRP/EUR' },
+  SOL: { name: 'Solana', kraken: 'SOLEUR', coinbase: 'SOL-EUR', ws: 'SOL/EUR' },
+  DOGE: { name: 'Dogecoin', kraken: 'XDGEUR', coinbase: 'DOGE-EUR', ws: 'DOGE/EUR' },
+  ADA: { name: 'Cardano', kraken: 'ADAEUR', coinbase: 'ADA-EUR', ws: 'ADA/EUR' },
+  TRX: { name: 'TRON', kraken: 'TRXEUR', coinbase: null, ws: 'TRX/EUR' },
+  LINK: { name: 'Chainlink', kraken: 'LINKEUR', coinbase: 'LINK-EUR', ws: 'LINK/EUR' },
+  AVAX: { name: 'Avalanche', kraken: 'AVAXEUR', coinbase: 'AVAX-EUR', ws: 'AVAX/EUR' },
+  DOT: { name: 'Polkadot', kraken: 'DOTEUR', coinbase: 'DOT-EUR', ws: 'DOT/EUR' },
+};
+
+// Perfiles de riesgo.
+export const RISK = {
+  conservador: { maxPositions: 2, positionPct: 0.2, stopATR: 1.5, tpATR: 2.5, threshold: 0.45, maxHoldCandles: 192 },
+  equilibrado: { maxPositions: 3, positionPct: 0.25, stopATR: 2.0, tpATR: 3.0, threshold: 0.35, maxHoldCandles: 192 },
+  agresivo: { maxPositions: 5, positionPct: 0.3, stopATR: 2.5, tpATR: 4.0, threshold: 0.25, maxHoldCandles: 288 },
+};
+
+// Señales que usa el bot. Cada estrategia empieza con pesos distintos
+// y luego los ajusta sola según lo que le funciona (aprendizaje).
+export const SIGNALS = {
+  tendencia: 'Tendencia (EMA 20/50)',
+  momentum: 'Momentum (4h)',
+  rebote: 'Rebote (RSI)',
+  ruptura: 'Ruptura (máximos 5h)',
+  volumen: 'Volumen',
+};
+
+export const STRATEGIES = {
+  adaptativo: {
+    label: 'IA adaptativa',
+    weights: { tendencia: 0.2, momentum: 0.2, rebote: 0.2, ruptura: 0.2, volumen: 0.2 },
+  },
+  tendencia: {
+    label: 'Seguidor de tendencia',
+    weights: { tendencia: 0.4, momentum: 0.3, rebote: 0.05, ruptura: 0.15, volumen: 0.1 },
+  },
+  rebote: {
+    label: 'Cazador de rebotes',
+    weights: { tendencia: 0.1, momentum: 0.05, rebote: 0.55, ruptura: 0.05, volumen: 0.25 },
+  },
+  ruptura: {
+    label: 'Rupturas',
+    weights: { tendencia: 0.15, momentum: 0.2, rebote: 0.05, ruptura: 0.4, volumen: 0.2 },
+  },
+};
+
+export const LEARNING_RATE = 0.15;
+export const MIN_WEIGHT = 0.03;
+export const MAX_TRADES_KEPT = 400;
+export const MAX_JOURNAL = 400;
+export const MAX_EQUITY_POINTS = 3000;
