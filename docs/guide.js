@@ -18,7 +18,7 @@ window.GUIDE = {
     },
     riesgos: {
       title: 'Niveles de riesgo',
-      html: `<p><b>Rápido.</b> Opera más a menudo y reacciona antes: objetivos y stops más cortos, pausa mínima entre operaciones y como mucho 24 h por operación. Aun así exige que al menos 2 señales estén de acuerdo antes de comprar.</p>
+      html: `<p><b>Rápido.</b> Decide cada 5 minutos con velas de 5 min (los demás, cada 15). Objetivos y stops más cortos, pausa mínima entre operaciones y como mucho 8 h por operación. Aun así exige que al menos 2 señales estén de acuerdo antes de comprar.</p>
       <p><b>Equilibrado.</b> Término medio: hasta 3 posiciones, cada una con un 25 % del dinero.</p>
       <p><b>Calmado.</b> Solo entra cuando 3 señales coinciden y la puntuación es alta. Pocas operaciones, deja correr más los beneficios y espera más entre operaciones.</p>
       <p>Más operaciones no significa más beneficio: cada orden paga comisión, y eso se nota.</p>`,
@@ -26,9 +26,9 @@ window.GUIDE = {
     estrategias: {
       title: 'Estrategias',
       html: `<p><b>IA adaptativa.</b> Empieza confiando igual en todas las señales y va ajustando sola según lo que le funciona.</p>
-      <p><b>Seguidor de tendencia.</b> Compra lo que ya está subiendo con fuerza.</p>
-      <p><b>Cazador de rebotes.</b> Compra cuando una cripto ha caído demasiado rápido (RSI bajo), esperando un rebote.</p>
-      <p><b>Rupturas.</b> Compra cuando el precio rompe el máximo de las últimas 5 horas con volumen.</p>
+      <p><b>Tendencia.</b> "Súbete al tren que ya va en marcha". Compra criptos que llevan horas subiendo con fuerza, porque lo que sube suele seguir subiendo un rato.</p>
+      <p><b>Rebotes.</b> "Compra en rebajas". Espera a que una cripto caiga demasiado rápido (RSI bajo) y compra pensando que rebotará. Opera poco, porque esas caídas bruscas no pasan cada día.</p>
+      <p><b>Rupturas.</b> "Salta cuando rompe el techo". Si el precio supera su máximo de las últimas horas con mucho volumen, compra esperando un empujón fuerte.</p>
       <p>Todas aprenden: con el tiempo sus pesos cambian según los resultados.</p>`,
     },
     senales: {
@@ -60,6 +60,17 @@ window.GUIDE = {
       <p><b>Mayor caída:</b> la peor bajada desde un máximo. Mide cuánto "sufre" el bot.</p>
       <p><b>Contra mantener BTC:</b> diferencia entre el bot y comprar Bitcoin y no tocarlo.</p>
       <p><b>Comisiones pagadas:</b> lo que se habría llevado el exchange. Con muchas operaciones, pesa bastante.</p>`,
+    },
+    radar: {
+      title: 'Radar: cuándo va a comprar',
+      html: `<p>Cada bot puntúa todas las criptos en cada vela. El radar te enseña las que tiene más cerca de comprar: al 100 % llega a su umbral.</p>
+      <p>Para comprar necesita las dos cosas: superar el umbral <b>y</b> que haya suficientes señales a favor (2 o 3 según el riesgo). Si pone "en pausa", acaba de vender esa moneda y espera un poco antes de volver.</p>`,
+    },
+    cuando: {
+      title: '¿Cuándo operan y cuándo ganan o pierden?',
+      html: `<p><b>Compran</b> solo cuando las señales son claras. En un mercado tranquilo pueden pasar horas sin operar; la IA Calmada y Rebotes, incluso días. No operar también es una decisión: evita perder dinero en comisiones.</p>
+      <p><b>Ganan o pierden</b> al vender: cuando el precio toca el objetivo (ganancia), el stop (pérdida), cuando las señales se vuelven bajistas o al pasar el tiempo máximo. Mientras la posición está abierta, el resultado se mueve en directo.</p>
+      <p>Para sacar conclusiones hacen falta semanas y decenas de operaciones, no un día.</p>`,
     },
     ranking: {
       title: 'Ranking',
@@ -104,9 +115,9 @@ window.GUIDE = {
     },
   },
   context: {
-    inicio: ['inicio', 'vsbtc'],
-    bots: ['bots', 'riesgos', 'estrategias', 'ranking', 'plantillas'],
-    bot: ['estadisticas', 'posiciones', 'aprendizaje', 'senales'],
+    inicio: ['inicio', 'cuando', 'vsbtc'],
+    bots: ['bots', 'cuando', 'riesgos', 'estrategias', 'ranking', 'plantillas'],
+    bot: ['radar', 'cuando', 'estadisticas', 'posiciones', 'aprendizaje', 'senales'],
     mercado: ['mercado', 'senales'],
     diario: ['diario', 'aprendizaje'],
     ajustes: ['personalizar', 'github', 'notificaciones'],

@@ -1,8 +1,8 @@
 // Configuración global del motor ONYX.
 // Todo lo que afecta al realismo de la simulación está aquí.
 
-export const CANDLE_SECONDS = 900; // velas de 15 minutos
-export const HISTORY_CANDLES = 300; // ~75 horas de historial para los indicadores
+export const BASE_SECONDS = 300; // se descargan velas de 5 minutos (las de 15 min se construyen a partir de ellas)
+export const CANDLE_SECONDS = 900; // marco temporal por defecto: 15 minutos
 
 // Comisiones y deslizamiento (similares a un exchange spot tipo Binance/Kraken).
 export const FEE_RATE = 0.001; // 0,1 % por operación (compra y venta)
@@ -26,12 +26,12 @@ export const COINS = {
 // Perfiles de riesgo.
 export const RISK = {
   // Calmado: pocas operaciones, solo entra con señales muy claras y las deja correr.
-  conservador: { label: 'Calmado', maxPositions: 2, positionPct: 0.2, stopATR: 1.8, tpATR: 3.0, threshold: 0.45, maxHoldCandles: 288, cooldownCandles: 16, minHoldCandles: 8, minAgree: 3 },
+  conservador: { label: 'Calmado', timeframe: 900, maxPositions: 2, positionPct: 0.2, stopATR: 1.8, tpATR: 3.0, threshold: 0.45, maxHoldCandles: 288, cooldownCandles: 16, minHoldCandles: 8, minAgree: 3 },
   // Equilibrado: término medio.
-  equilibrado: { label: 'Equilibrado', maxPositions: 3, positionPct: 0.25, stopATR: 2.0, tpATR: 3.0, threshold: 0.35, maxHoldCandles: 192, cooldownCandles: 8, minHoldCandles: 4, minAgree: 2 },
-  // Rápido: opera más y reacciona antes (stops y objetivos más cortos, menos espera),
-  // pero sigue exigiendo que al menos 2 señales estén de acuerdo.
-  agresivo: { label: 'Rápido', maxPositions: 4, positionPct: 0.22, stopATR: 1.5, tpATR: 2.2, threshold: 0.25, maxHoldCandles: 96, cooldownCandles: 2, minHoldCandles: 2, minAgree: 2 },
+  equilibrado: { label: 'Equilibrado', timeframe: 900, maxPositions: 3, positionPct: 0.25, stopATR: 2.0, tpATR: 3.0, threshold: 0.35, maxHoldCandles: 192, cooldownCandles: 8, minHoldCandles: 4, minAgree: 2 },
+  // Rápido: decide cada 5 minutos con velas de 5 min, stops y objetivos más cortos y
+  // operaciones de como mucho 8 h, pero exige que al menos 2 señales estén de acuerdo.
+  agresivo: { label: 'Rápido', timeframe: 300, maxPositions: 4, positionPct: 0.22, stopATR: 1.8, tpATR: 2.6, threshold: 0.28, maxHoldCandles: 96, cooldownCandles: 3, minHoldCandles: 2, minAgree: 2 },
 };
 
 // Señales que usa el bot. Cada estrategia empieza con pesos distintos

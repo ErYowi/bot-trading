@@ -79,7 +79,7 @@ function closePosition(bot, p, rawPrice, t, reason, events) {
   };
   bot.positions = bot.positions.filter((x) => x !== p);
   bot.cooldown = bot.cooldown || {};
-  bot.cooldown[p.coin] = t + (RISK[bot.risk].cooldownCandles ?? 8) * CANDLE_SECONDS; // pausa antes de volver a esa moneda
+  bot.cooldown[p.coin] = t + (RISK[bot.risk].cooldownCandles ?? 8) * (RISK[bot.risk].timeframe || CANDLE_SECONDS); // pausa antes de volver a esa moneda
   bot.trades.push(trade);
   bot.tradeCount = (bot.tradeCount || 0) + 1;
   if (bot.trades.length > MAX_TRADES_KEPT) bot.trades.splice(0, bot.trades.length - MAX_TRADES_KEPT);
@@ -91,6 +91,7 @@ function closePosition(bot, p, rawPrice, t, reason, events) {
 // Avanza un bot una vela (t = inicio de la vela de 15 min que acaba de cerrar).
 export function stepBot(bot, market, t, events) {
   const R = RISK[bot.risk];
+  const TF = R.timeframe || CANDLE_SECONDS;
 
   // 1) Gestionar posiciones abiertas con el máximo/mínimo de la vela
   for (const p of [...bot.positions]) {
@@ -116,7 +117,7 @@ export function stepBot(bot, market, t, events) {
       const trail = p.peak - R.stopATR * 0.75 * atr;
       if (trail > p.stop) p.stop = Math.max(trail, p.entry * (1 + 2 * (FEE_RATE + SLIPPAGE)));
     }
-    const sig = (t - p.entryTime) / CANDLE_SECONDS >= (R.minHoldCandles ?? 4) ? signalsAt(m.candles, m.ind, i) : null;
+    const sig = (t - p.entryTime) / TF >= (R.minHoldCandles ?? 4) ? signalsAt(m.candles, m.ind, i) : null;
     if (sig) {
       const sc = score(bot.weights, sig);
       if (sc < -bot.threshold) {
@@ -124,31 +125,35 @@ export function stepBot(bot, market, t, events) {
         continue;
       }
     }
-    if ((t - p.entryTime) / CANDLE_SECONDS >= R.maxHoldCandles) {
-      closePosition(bot, p, k.c, t, `Tiempo máximo (${(R.maxHoldCandles / 4).toFixed(0)} h) sin llegar al objetivo`, events);
+    if ((t - p.entryTime) / TF >= R.maxHoldCandles) {
+      closePosition(bot, p, k.c, t, `Tiempo máximo (${((R.maxHoldCandles * TF) / 3600).toFixed(0)} h) sin llegar al objetivo`, events);
     }
   }
 
   // 2) Buscar nuevas entradas
   const slots = R.maxPositions - bot.positions.length;
+  const allowed = Array.isArray(bot.coins) && bot.coins.length ? bot.coins : Object.keys(market);
+  const candidates = [];
+  const radar = [];
+  for (const coin of allowed) {
+    if (bot.positions.some((p) => p.coin === coin)) continue;
+    const m = market[coin];
+    const i = m?.index.get(t);
+    if (i == null) continue;
+    const sig = signalsAt(m.candles, m.ind, i);
+    if (!sig) continue;
+    // Filtro de calidad: varias señales tienen que estar de acuerdo
+    const agree = Object.values(sig.s).filter((v) => v > 0.2).length;
+    const trust = bot.coinTrust[coin] ?? 1;
+    const sc = score(bot.weights, sig) * trust;
+    const cooling = (bot.cooldown?.[coin] ?? 0) > t;
+    radar.push({ coin, score: +sc.toFixed(3), agree, cooling });
+    if (cooling || agree < (R.minAgree ?? 2)) continue;
+    if (sc > bot.threshold) candidates.push({ coin, sig, sc, trust, price: m.candles[i].c });
+  }
+  radar.sort((a, b) => b.score - a.score);
+  bot.radar = { t, threshold: bot.threshold, minAgree: R.minAgree ?? 2, full: slots <= 0, items: radar.slice(0, 4) };
   if (slots > 0) {
-    const allowed = Array.isArray(bot.coins) && bot.coins.length ? bot.coins : Object.keys(market);
-    const candidates = [];
-    for (const coin of allowed) {
-      if (bot.positions.some((p) => p.coin === coin)) continue;
-      if ((bot.cooldown?.[coin] ?? 0) > t) continue;
-      const m = market[coin];
-      const i = m?.index.get(t);
-      if (i == null) continue;
-      const sig = signalsAt(m.candles, m.ind, i);
-      if (!sig) continue;
-      // Filtro de calidad: varias señales tienen que estar de acuerdo
-      const agree = Object.values(sig.s).filter((v) => v > 0.2).length;
-      if (agree < (R.minAgree ?? 2)) continue;
-      const trust = bot.coinTrust[coin] ?? 1;
-      const sc = score(bot.weights, sig) * trust;
-      if (sc > bot.threshold) candidates.push({ coin, sig, sc, trust, price: m.candles[i].c });
-    }
     candidates.sort((a, b) => b.sc - a.sc);
     for (const c of candidates.slice(0, slots)) {
       const equity = equityOf(bot, market, t);

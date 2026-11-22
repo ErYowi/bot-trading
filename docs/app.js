@@ -52,7 +52,7 @@
   };
   const LINE_W = { fina: 0.7, normal: 1, gruesa: 1.6 };
   const TEMPLATES = [
-    { name: 'IA Rápida', strategy: 'adaptativo', risk: 'agresivo', desc: 'Opera mucho y reacciona rápido, con filtro de calidad.' },
+    { name: 'IA Rápida', strategy: 'adaptativo', risk: 'agresivo', desc: 'Decide cada 5 min y opera más, con filtro de calidad.' },
     { name: 'IA Equilibrada', strategy: 'adaptativo', risk: 'equilibrado', desc: 'El punto medio entre actividad y prudencia.' },
     { name: 'IA Calmada', strategy: 'adaptativo', risk: 'conservador', desc: 'Pocas operaciones, solo con señales muy claras.' },
     { name: 'Tendencia', strategy: 'tendencia', risk: 'equilibrado', desc: 'Se sube a lo que ya está subiendo.' },
@@ -275,6 +275,27 @@
     return eq;
   }
 
+  // Moneda que el bot tiene más cerca de comprar
+  function radarText(b) {
+    const r = b.radar;
+    if (!r || !r.items?.length) return '';
+    const top = r.items[0];
+    const n = (v) => v.toFixed(2).replace('.', ',');
+    return `vigila ${top.coin} (${n(Math.max(0, top.score))} de ${n(r.threshold)})`;
+  }
+  function radarBlock(b) {
+    const r = b.radar;
+    if (!r || !r.items?.length) return '<p class="muted small">El radar aparecerá tras el próximo ciclo del motor.</p>';
+    const n = (v) => v.toFixed(2).replace('.', ',');
+    return `<p class="muted small">Puntuación de las criptos que tiene más cerca. Compra cuando una supera ${n(r.threshold)} y al menos ${r.minAgree} señales están a favor. Actualizado ${ago(r.t + (b.timeframe || 900))}.${r.full ? ' <b>Ahora tiene todas sus posiciones ocupadas</b>: no comprará más hasta vender alguna.' : ''}</p>
+      <div class="weights">${r.items.map((it) => {
+        const w = Math.max(0, Math.min(100, (it.score / r.threshold) * 100));
+        const ok = it.agree >= r.minAgree && !it.cooling;
+        return `<div class="weight-row"><span>${esc(it.coin)} <span class="muted small">${it.cooling ? 'en pausa' : `${it.agree} señales`}</span></span>
+          <div class="bar-track"><div class="bar-fill" style="left:0;width:${w}%;${ok && w >= 100 ? '' : 'opacity:.55'}"></div></div><span>${Math.round(w)} %</span></div>`;
+      }).join('')}</div>`;
+  }
+
   // ---------- Router ----------
   const view = () => $('#view');
   function route() {
@@ -382,7 +403,7 @@
     const spark = b.equityHistory.slice(-96).map((p) => p[1]);
     return `<a class="row" href="#bot/${encodeURIComponent(b.id)}">
       <div class="row-main"><div class="row-title">${esc(b.name)}</div>
-      <div class="row-sub">${esc((STRATS[b.strategy] || b.strategy).replace('Seguidor de tendencia','Tendencia').replace('Cazador de rebotes','Rebotes'))}, ${b.positions.length ? b.positions.length + (b.positions.length === 1 ? ' abierta' : ' abiertas') : 'sin posiciones'}</div></div>
+      <div class="row-sub">${b.positions.length ? b.positions.length + (b.positions.length === 1 ? ' posición abierta' : ' posiciones abiertas') : esc(radarText(b) || 'sin posiciones')}</div></div>
       <div class="row-end" style="display:flex;gap:12px;align-items:center">${Charts.sparkline(spark, ret >= 0 ? 'var(--up)' : 'var(--down)')}
       <div><div>${eur(eq)}</div><div class="row-sub ${cls(ret)}">${pct(ret)}</div></div></div></a>`;
   }
@@ -470,6 +491,9 @@
         ${stat('Duración media', st.avgHoldHours == null ? '—' : durationText(st.avgHoldHours * 3600))}
         ${stat('Comisiones pagadas', eur(st.fees || 0))}
       </div>
+
+      <h2 class="section-title">Radar <small>decide cada ${(b.timeframe || 900) / 60} min</small></h2>
+      ${radarBlock(b)}
 
       <h2 class="section-title">Posiciones abiertas <small>${eur(b.cash)} en efectivo</small></h2>
       ${b.positions.length ? b.positions.map((p) => positionItem(b, p)).join('') : '<p class="muted small">Sin posiciones ahora mismo. Compra cuando la puntuación supera su umbral.</p>'}

@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { COINS, CANDLE_SECONDS, STRATEGIES, RISK } from './config.js';
-import { fetchCandles } from './data.js';
+import { fetchCandles, aggregate } from './data.js';
 import { computeIndicators } from './indicators.js';
 import { createBot, stepBot } from './sim.js';
 import { computeStats } from './stats.js';
@@ -30,23 +30,26 @@ export function buildMarket(candlesBySym) {
   return market;
 }
 
-function syncBots(state, cfg, market, t, events) {
+const tfOf = (risk) => RISK[risk]?.timeframe || CANDLE_SECONDS;
+
+function syncBots(state, cfg, markets, tStart, events) {
   const wanted = (cfg.bots || []).filter((b) => b && b.id && b.active !== false);
   const byId = new Map(state.bots.map((b) => [b.id, b]));
   const next = [];
   for (const c of wanted) {
     const prev = byId.get(c.id);
     if (!prev || (c.resetToken || null) !== (prev.resetToken || null)) {
-      const bot = createBot(c, t, market);
+      const tf = tfOf(c.risk);
+      const bot = createBot(c, tStart[tf], markets[tf]);
       next.push(bot);
-      events.push({ bot: bot.name, botId: bot.id, type: 'info', text: prev ? 'Bot reiniciado' : 'Bot creado', t });
+      events.push({ bot: bot.name, botId: bot.id, type: 'info', text: prev ? 'Bot reiniciado' : 'Bot creado', t: tStart[tf] });
       continue;
     }
     // Cambios que se aplican en caliente
     prev.name = c.name || prev.name;
     prev.coins = c.coins;
     if (RISK[c.risk] && c.risk !== prev.risk) {
-      prev.journal.push({ t, type: 'ajuste', text: `Riesgo cambiado de ${prev.risk} a ${c.risk}.` });
+      prev.journal.push({ t: tStart[tfOf(prev.risk)], type: 'ajuste', text: `Riesgo cambiado de ${prev.risk} a ${c.risk}.` });
       const delta = prev.threshold - prev.baseThreshold;
       prev.risk = c.risk;
       prev.baseThreshold = RISK[c.risk].threshold;
@@ -90,30 +93,47 @@ export async function run({ fetcher = fetchCandles, now = Math.floor(Date.now() 
 
   const symbols = Object.keys(COINS);
   const { candles, sources } = await fetcher(symbols, now);
-  const market = buildMarket(candles);
-  if (!market.BTC) throw new Error('Sin datos de BTC: no se puede avanzar la simulación');
-
-  const btcTimes = market.BTC.candles.map((k) => k.t);
-  const latest = btcTimes[btcTimes.length - 1];
+  // Dos marcos temporales: 5 min (bots rápidos) y 15 min (el resto)
+  const c15 = Object.fromEntries(Object.entries(candles).map(([s, c]) => [s, aggregate(c, 900, now)]));
+  const markets = { 300: buildMarket(candles), 900: buildMarket(c15) };
+  const market = markets[900];
+  if (!market.BTC || !markets[300].BTC) throw new Error('Sin datos de BTC: no se puede avanzar la simulación');
   const events = [];
 
-  if (state.lastCandle == null) state.lastCandle = latest; // primer arranque: empieza "ahora"
-  let pending = btcTimes.filter((t) => t > state.lastCandle);
-  if (pending.length > MAX_CATCHUP) pending = pending.slice(-MAX_CATCHUP);
-
-  syncBots(state, cfg, market, pending[0] ?? latest, events);
-
-  for (const t of pending) {
-    for (const bot of state.bots) {
-      if (t <= bot.createdAt) continue;
-      stepBot(bot, market, t, events);
-    }
-    state.lastCandle = t;
+  // progreso por marco temporal (migra el formato antiguo)
+  state.lastCandleByTf ||= {};
+  if (state.lastCandle != null && state.lastCandleByTf[900] == null) state.lastCandleByTf[900] = state.lastCandle;
+  const pendingByTf = {}, tStart = {};
+  let processed = 0;
+  for (const tf of [300, 900]) {
+    const times = markets[tf].BTC.candles.map((k) => k.t);
+    const latest = times[times.length - 1];
+    if (state.lastCandleByTf[tf] == null) state.lastCandleByTf[tf] = latest; // primer arranque: empieza "ahora"
+    let pending = times.filter((t) => t > state.lastCandleByTf[tf]);
+    const cap = (MAX_CATCHUP * 900) / tf;
+    if (pending.length > cap) pending = pending.slice(-cap);
+    pendingByTf[tf] = pending;
+    tStart[tf] = pending[0] ?? latest;
   }
+
+  syncBots(state, cfg, markets, tStart, events);
+
+  for (const tf of [300, 900]) {
+    for (const t of pendingByTf[tf]) {
+      for (const bot of state.bots) {
+        if (tfOf(bot.risk) !== tf || t <= bot.createdAt) continue;
+        stepBot(bot, markets[tf], t, events);
+      }
+      state.lastCandleByTf[tf] = t;
+      processed++;
+    }
+  }
+  state.lastCandle = state.lastCandleByTf[900];
 
   for (const bot of state.bots) {
     bot.stats = computeStats(bot);
     bot.strategyLabel = STRATEGIES[bot.strategy].label;
+    bot.timeframe = tfOf(bot.risk);
   }
 
   state.version = VERSION;
@@ -137,7 +157,7 @@ export async function run({ fetcher = fetchCandles, now = Math.floor(Date.now() 
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, JSON.stringify(state));
   console.log(
-    `[onyx] velas procesadas: ${pending.length} · bots: ${state.bots.length} · eventos: ${events.length} · ` +
+    `[onyx] velas procesadas: ${processed} · bots: ${state.bots.length} · eventos: ${events.length} · ` +
       state.bots.map((b) => `${b.name} ${b.stats.equity.toFixed(2)}€`).join(' | ')
   );
   return state;

@@ -120,7 +120,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* Pesos aprendidos */
 .weights { display: grid; gap: 11px; }
-.weight-row { display: grid; grid-template-columns: 150px 1fr 40px; gap: 10px; align-items: center; font-size: 13.5px; }
+.weight-row { display: grid; grid-template-columns: 150px 1fr 46px; gap: 10px; align-items: center; font-size: 13.5px; }
 .weight-row .bar-track { height: 5px; }
 .weight-row .bar-fill { background: var(--accent); }
 .weight-row span:last-child { text-align: right; color: var(--muted); }
