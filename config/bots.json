@@ -1,11 +1,68 @@
 {
   "bots": [
-    { "id": "rapido", "name": "IA Rápida", "strategy": "adaptativo", "risk": "agresivo", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
-    { "id": "equilibrada", "name": "IA Equilibrada", "strategy": "adaptativo", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
-    { "id": "calmada", "name": "IA Calmada", "strategy": "adaptativo", "risk": "conservador", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
-    { "id": "rupturas", "name": "Rupturas", "strategy": "ruptura", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
-    { "id": "tendencia", "name": "Tendencia", "strategy": "tendencia", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" },
-    { "id": "rebote", "name": "Rebotes", "strategy": "rebote", "risk": "equilibrado", "capital": 100, "coins": [], "active": true, "resetToken": "v1" }
+    {
+      "id": "rapido",
+      "name": "IA Rápida",
+      "strategy": "adaptativo",
+      "risk": "agresivo",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    },
+    {
+      "id": "equilibrada",
+      "name": "IA Equilibrada",
+      "strategy": "adaptativo",
+      "risk": "equilibrado",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    },
+    {
+      "id": "calmada",
+      "name": "IA Calmada",
+      "strategy": "adaptativo",
+      "risk": "conservador",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    },
+    {
+      "id": "rupturas",
+      "name": "Rupturas",
+      "strategy": "ruptura",
+      "risk": "equilibrado",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    },
+    {
+      "id": "tendencia",
+      "name": "Tendencia",
+      "strategy": "tendencia",
+      "risk": "equilibrado",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    },
+    {
+      "id": "rebote",
+      "name": "Rebotes",
+      "strategy": "rebote",
+      "risk": "equilibrado",
+      "capital": 100,
+      "coins": [],
+      "active": true,
+      "resetToken": "v1"
+    }
   ],
-  "notifications": { "compras": true, "ventas": true }
+  "notifications": {
+    "compras": true,
+    "ventas": false
+  }
 }
