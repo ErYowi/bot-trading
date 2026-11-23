@@ -62,7 +62,7 @@
     }
   ],
   "notifications": {
-    "compras": true,
+    "compras": false,
     "ventas": false
   }
 }
