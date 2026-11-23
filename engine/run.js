@@ -13,7 +13,7 @@ import { computeStats } from './stats.js';
 import { getVapid, sendPush } from './notify.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const MAX_CATCHUP = 192; // si el motor estuvo parado, recupera como mucho 48 h
 
 const readJSON = (p, fallback) => {
