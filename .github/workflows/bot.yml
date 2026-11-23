@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # para programar el siguiente ciclo
 
 concurrency:
   group: onyx-engine
@@ -18,8 +19,11 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 9
     steps:
+      - name: Hora de inicio
+        run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -56,3 +60,16 @@ jobs:
           git -c user.name="onyx-bot" -c user.email="onyx-bot@users.noreply.github.com" add state.json
           git -c user.name="onyx-bot" -c user.email="onyx-bot@users.noreply.github.com" commit -qm "estado $(date -u +%FT%TZ)"
           git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+
+      # El cron de GitHub se retrasa o se salta ciclos. Para que sea 24/7 de verdad,
+      # cada ciclo programa el siguiente ~5 min después de haber empezado.
+      # Si hay varios encadenados, el grupo de concurrencia los reduce a uno.
+      - name: Programar el siguiente ciclo
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ELAPSED=$(( $(date +%s) - START ))
+          WAIT=$(( 270 - ELAPSED ))
+          if [ "$WAIT" -gt 0 ]; then sleep "$WAIT"; fi
+          gh workflow run bot.yml --repo "$GITHUB_REPOSITORY" --ref main
